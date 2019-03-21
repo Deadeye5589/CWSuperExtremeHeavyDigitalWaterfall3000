@@ -3,7 +3,7 @@ import time
 from CwController import CwController
 
 if __name__ == '__main__':
-    controller = CwController(32)
+    controller = CwController(16)
 
     time.sleep(2)
     controller.valves[1].is_on = True
