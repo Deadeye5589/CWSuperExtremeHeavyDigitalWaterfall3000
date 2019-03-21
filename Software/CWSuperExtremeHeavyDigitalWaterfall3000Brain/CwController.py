@@ -1,3 +1,5 @@
+import math
+
 from CwSerial import CwSerial
 from CwValve import CwValve
 
@@ -12,10 +14,10 @@ class CwController():
     def init_valves(self, valve_count):
         for x in range(valve_count):
             bytes = []
-            for y in range(int(valve_count / 8)):
+            for y in range(int(math.ceil(valve_count / 8.0))):
                 bytes.append(0)
 
-            bytes[int((valve_count - x - 1) / 8)] = 1 << x % 8
+            bytes[int((math.ceil(valve_count / 8.0)) - (x / 8) - 1)] = 1 << x % 8
             self.valves.append(CwValve(bytearray(bytes)))
 
     def flush(self):
