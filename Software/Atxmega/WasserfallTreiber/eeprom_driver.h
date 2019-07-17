@@ -59,9 +59,6 @@
 #ifndef EEPROM_DRIVER_H
 #define EEPROM_DRIVER_H
 
-#include "avr_compiler.h"
-
-#define MAPPED_EEPROM_START 0x1000
 #define EEPROM_PAGESIZE 32
 #define EEPROM(_pageAddr, _byteAddr) \
 	((uint8_t *) MAPPED_EEPROM_START)[_pageAddr*EEPROM_PAGESIZE + _byteAddr]
