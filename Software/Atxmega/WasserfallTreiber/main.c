@@ -1,7 +1,7 @@
 /*
  * WasserfallTreiber.c
  *
- * Created: 16.07.2019 - 12:00
+ * Created: 18.07.2019 - 12:00
  * Author : Ich
  */ 
 
@@ -83,6 +83,19 @@ void init_spi_uart(void){
 	USARTD0.BAUDCTRLA = 0x3F;				//BSEL = 63 for 250 kBit / s 
 }
 
+// function name: init_timer()
+// Configure timer 0 (TCC0) 
+// 36 ms interrupt interval
+// Based on Baudrate of 115200 and maximum number of relays 4096
+// t_max = 1/ 115200 baud * 4096
+// t_max = 35,55 ms rounded to 36ms which is 27.77 Hz  
+void init_timer(void){
+	TCC0.CTRLB = TC_WGMODE_NORMAL_gc;			//Set timer to normal mode, frequency generation via PER register
+	TCC0.CTRLA = TC_CLKSEL_OFF_gc;				//Timer is disabled after init
+	//TCC0.CTRLA = TC_CLKSEL_DIV64_gc;			//Prescaler to 64, also used to (re)enable timer 
+	TCC0.PER = 18000;							//Per register setting so timer frequency equals 27.77 Hz (fout = f_Cpu / (Prescaler*(PER+1))	
+	TCC0.INTCTRLA = TC_OVFINTLVL_LO_gc;			//Enable timer overflow interrupt		
+}
 
 // function name: DRV8860_send_data()
 // send out 8 bits of data to DRV8860 driver
@@ -146,7 +159,7 @@ void DRV8860_cleanup(uint16_t no_of_drivers){
 void save_eeprom(uint16_t config_value){
 	EEPROM_FlushBuffer();							//Flush buffer just to be sure when we start
 	EEPROM_DisableMapping();
-	EEPROM_WriteByte(EEPROM_PAGE_ADDR, EEPROM_BYTE_ADDR_2, (0xFF & config_value));	//Store low byte to EEPROM
+	EEPROM_WriteByte(EEPROM_PAGE_ADDR, EEPROM_BYTE_ADDR_2, (config_value & 0xFF));	//Store low byte to EEPROM
 	EEPROM_WriteByte(EEPROM_PAGE_ADDR, EEPROM_BYTE_ADDR_1, (config_value >> 8));	//Store high byte to EEPROM
 
 	char* report = "Config saved";						//The  message you get
@@ -163,6 +176,28 @@ void save_eeprom(uint16_t config_value){
 	store_eeprom = 0;								//EEPRPOM value was saved
 }
 
+// function name: start_timer()
+// Calculates the timer lenght based on the value of bytes per frame
+// Sets timer PER register accordingly 
+// Starts Timer 0 that we use like a watchdog in case the frame message is not completed in time
+void start_timer(uint16_t duration){
+	float ftimer = 0;				//Frequency of the timer interval
+	uint8_t pre = 64;				//Same prescaler value as set during timer_init()
+	uint32_t baud = 115200;			//Same as UART baud rate set in uart_init()
+	float symbol = 0;				//Symbol duration based on 1 / baud	* no of bytes per frame
+
+	symbol = (1 / baud) * duration;			//Calculate how long the whole frame will take
+	ftimer = (F_CPU - 1) / (symbol * pre);	//Calculate the new setting of the periode register of Timer0
+	TCC0.PER = (uint16_t)ftimer;			//Set the new timer periode
+	TCC0.CTRLA = TC_CLKSEL_DIV64_gc;		//And start the timer by setting the prescaler 
+}
+
+// function name: stop_timer()
+// Stops Timer0 by setting the perscaler to Off and resets counter register 
+void stop_timer(void){
+	TCC0.CTRLA = TC_CLKSEL_OFF_gc;							//Stop Timer0 since frame was received completely
+	TCC0.CNT = 0x0000;										//Reset timer counter register to 0
+}
 
 // interrupt handlers ---------------------------------------------------------
 // function name: UARTC0_Rx_Interrupt
@@ -194,8 +229,9 @@ ISR(USARTC0_RXC_vect)
 			USARTC0.DATA = 0x0D;
 			while(!(USARTC0.STATUS & USART_DREIF_bm));
 			USARTC0.DATA = 0x0A;
-			state_count = start;								//Go back to start don't take 4000€
+			state_count = start;								//Go back to start don't take 4000ï¿½
 		}
+		start_timer(frame_lenght);								//Start our "watchdog" like timer
 		state_count = payload;									
 	}
 	else if (state_count == payload && frame_lenght > 0)		//All other bytes are payload of a frame
@@ -228,7 +264,7 @@ ISR(USARTC0_RXC_vect)
 			USARTC0.DATA = 0x0D;
 			while(!(USARTC0.STATUS & USART_DREIF_bm));
 			USARTC0.DATA = 0x0A;
-			state_count = start;								//Go back to start don't take 4000€
+			state_count = start;								//Go back to start don't take 4000ï¿½
 		}
 		else{
 			store_eeprom = 1;
@@ -238,6 +274,17 @@ ISR(USARTC0_RXC_vect)
 	
 }
 
+// function name: TCC0_OVF_vect
+// Timer0 (TCC0) overflow interrupt
+// Used to reset state machine and ringbuffer, 
+// if frame is not completed within expected time
+ISR(TCC0_OVF_vect)
+{
+	stop_timer();								//The timeout was trigged so we can stop the timer for now
+	RingBuffer_Cleanup(&Buffer, USART_Data);	//Clear the ring buffer 
+	state_count = start;						//Reset the state machine
+}
+
 
 // main programm starts here ---------------------------------------------------------
 int main(void)
@@ -245,6 +292,7 @@ int main(void)
 	init_clocks();
 	init_ports();
 	init_uart();
+	init_timer();
 
 	config = EEPROM_ReadByte(EEPROM_PAGE_ADDR, EEPROM_BYTE_ADDR_1)<<8; 	//Read number of used relays that was stored in EEPROM
 	config |= EEPROM_ReadByte(EEPROM_PAGE_ADDR, EEPROM_BYTE_ADDR_2); 	//First high than low byte
@@ -280,6 +328,8 @@ int main(void)
     while (1) 
     {
 		if(byte_ready){
+
+			stop_timer();											//Frames was completely received so we can stop the timout
 
 			//Output content of ring buffer on DRV8860 drivers 
 			PORTD.OUTSET = PIN4_bm;									//Latch High
