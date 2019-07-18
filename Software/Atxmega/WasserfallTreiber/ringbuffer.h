@@ -4,21 +4,17 @@
  *  Copyright (C) Daniel Kampert, 2018
  *	Website: www.kampis-elektroecke.de
  *  File info: Generic ring buffer
-
   GNU GENERAL PUBLIC LICENSE:
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
-
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
-
   You should have received a copy of the GNU General Public License
   along with this program. If not, see <http://www.gnu.org/licenses/>.
-
   Errors and omissions should be reported to DanielKampert@kampis-elektroecke.de
  */ 
 
@@ -156,6 +152,21 @@
  static inline uint16_t RingBuffer_GetBytes(const RingBuffer_t* Buffer)
  {
 	 return Buffer->ByteCount;
+ }
+ 
+  /*****************************************************************************
+  * @brief               Cleanup the ring buffer
+  *
+  * @param Buffer		 Pointer to ring buffer object
+  * 
+  *
+ *******************************************************************************/
+ static inline void RingBuffer_Cleanup(RingBuffer_t* Buffer, uint8_t* Data) __attribute__ ((always_inline)); 
+ static inline void RingBuffer_Cleanup(RingBuffer_t* Buffer, uint8_t* Data)
+ {
+	 Buffer->InPtr = Data;
+	 Buffer->OutPtr = Data;
+	 Buffer->ByteCount = 0;
  }
 
 #endif /* RINGBUFFER_H_ */
