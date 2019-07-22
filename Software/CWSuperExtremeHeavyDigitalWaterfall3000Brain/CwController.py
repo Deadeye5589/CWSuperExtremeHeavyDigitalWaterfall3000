@@ -1,4 +1,3 @@
-import binascii
 import math
 import struct
 
@@ -8,13 +7,15 @@ from CwValve import CwValve
 
 class CwController():
 
-    def __init__(self, valve_count):
+    def __init__(self, valve_count, queue):
         self.valves = []
         self.init_valves(valve_count)
-        self.serial = CwSerial()
+        self.queue = queue
+        self.serial = CwSerial(queue)
         self.valve_count = valve_count
-        self.valve_stripes = int(math.ceil(float(self.valve_count)/8))
-        self.high_byte_valve_stripe, self.low_byte_valve_stripe = struct.unpack('>BB', struct.pack('>H', self.valve_stripes))
+        self.valve_stripes = int(math.ceil(float(self.valve_count) / 8))
+        self.high_byte_valve_stripe, self.low_byte_valve_stripe = struct.unpack('>BB',
+                                                                                struct.pack('>H', self.valve_stripes))
 
     def init_valves(self, valve_count):
         for x in range(valve_count):
@@ -26,6 +27,7 @@ class CwController():
             self.valves.append(CwValve(bytearray(bytes)))
 
     def flush(self):
+        self.queue = False
         self.send_start()
         self.send_valve_count()
         self.send_data()
