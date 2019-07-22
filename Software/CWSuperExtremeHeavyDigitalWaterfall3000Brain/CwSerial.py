@@ -1,18 +1,31 @@
-from serial import Serial
 import platform
+import threading
+
+from serial import Serial
 
 
-class CwSerial():
+def read(serial_port, queue):
+    while True:
+        bytes_read = serial_port.read()
+        if bytes_read == 'F':
+            queue.put(True)
 
-    def __init__(self):
-        # self.serial_port = None
+
+class CwSerial:
+
+    def __init__(self, queue):
         if platform.system() == 'Linux':
-            self.serial_port = Serial('/dev/ttyUSB0', 115200)
+            port = '/dev/ttyUSB0'
         else:
-            self.serial_port = Serial('COM3', 115200)
+            port = 'COM4'
 
-    def write(self, bytes):
-        self.serial_port.write(bytes)
+        self.serial_port = Serial(port, 115200)
+        queue.put(True)
+        thread = threading.Thread(target=read, args=(self.serial_port, queue,))
+        thread.start()
+
+    def write(self, data):
+        self.serial_port.write(data)
 
     def close(self):
         self.serial_port.close()
