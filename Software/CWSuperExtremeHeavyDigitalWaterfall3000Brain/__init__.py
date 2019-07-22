@@ -19,40 +19,16 @@ if __name__ == '__main__':
 
     for index in range(0, REPEATS):
         for values in reversed(effect):
-            controller.valves[0].is_on = False if values[0] == '0' else True
-            controller.valves[1].is_on = False if values[1] == '0' else True
-            controller.valves[2].is_on = False if values[2] == '0' else True
-            controller.valves[3].is_on = False if values[3] == '0' else True
-            controller.valves[4].is_on = False if values[4] == '0' else True
-            controller.valves[5].is_on = False if values[5] == '0' else True
-            controller.valves[6].is_on = False if values[6] == '0' else True
-            controller.valves[7].is_on = False if values[7] == '0' else True
-            controller.valves[8].is_on = False if values[8] == '0' else True
-            controller.valves[9].is_on = False if values[9] == '0' else True
+            for valve_index in range(controller.valves):
+                controller.valves[valve_index].is_on = False if values[valve_index] == '0' else True
             controller.flush()
             time.sleep(ON_TIME)
 
-            controller.valves[0].is_on = False
-            controller.valves[1].is_on = False
-            controller.valves[2].is_on = False
-            controller.valves[3].is_on = False
-            controller.valves[4].is_on = False
-            controller.valves[5].is_on = False
-            controller.valves[6].is_on = False
-            controller.valves[7].is_on = False
-            controller.valves[8].is_on = False
-            controller.valves[9].is_on = False
+            for valve_index in range(controller.valves):
+                controller.valves[valve_index].is_on = False
             controller.flush()
             time.sleep(OFF_TIME)
 
-    controller.valves[0].is_on = False
-    controller.valves[1].is_on = False
-    controller.valves[2].is_on = False
-    controller.valves[3].is_on = False
-    controller.valves[4].is_on = False
-    controller.valves[5].is_on = False
-    controller.valves[6].is_on = False
-    controller.valves[7].is_on = False
-    controller.valves[8].is_on = False
-    controller.valves[9].is_on = False
+    for valve_index in range(controller.valves):
+        controller.valves[valve_index].is_on = False
     controller.flush()
