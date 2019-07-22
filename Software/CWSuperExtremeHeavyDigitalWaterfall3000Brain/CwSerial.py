@@ -6,7 +6,6 @@ import threading
 class CwSerial():
 
     def __init__(self):
-        # self.serial_port = None
         if platform.system() == 'Linux':
             port = '/dev/ttyUSB0'
         else:

@@ -4,11 +4,9 @@ from CwController import CwController
 from CwRestController import CwRestController
 
 REPEATS = 1000
-#ON_TIME = 0.04
 ON_TIME = 0.003
-#OFF_TIME = 0.04
 OFF_TIME = 0.02
-EFFECT_NAME = "waves"
+EFFECT_NAME = "all"
 # EFFECT_NAME = "wave_10_valves"
 # EFFECT_NAME = "character_a_10_valves"
 
