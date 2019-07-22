@@ -37,9 +37,9 @@ class CwController():
         for valve in self.valves:
             if valve.is_on:
                 bytes_to_send[0] |= valve.address[0]
-                bytes_to_send[1] |= valve.address[1]
+                #bytes_to_send[1] |= valve.address[1]
             else:
                 bytes_to_send[0] &= ~valve.address[0]
-                bytes_to_send[1] &= ~valve.address[1]
+                #bytes_to_send[1] &= ~valve.address[1]
 
         self.serial.write(bytes_to_send)

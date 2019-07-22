@@ -4,14 +4,16 @@ from CwController import CwController
 from CwRestController import CwRestController
 
 REPEATS = 1000
+#ON_TIME = 0.04
 ON_TIME = 0.003
+#OFF_TIME = 0.04
 OFF_TIME = 0.02
-EFFECT_NAME = "all"
+EFFECT_NAME = "waves"
 # EFFECT_NAME = "wave_10_valves"
 # EFFECT_NAME = "character_a_10_valves"
 
 if __name__ == '__main__':
-    controller = CwController(10)
+    controller = CwController(8)
     #restController = CwRestController()
 
     effect = []
@@ -20,7 +22,6 @@ if __name__ == '__main__':
         effect.append(row.split(" "))
 
     for index in range(0, REPEATS):
-    #while True:
         for values in reversed(effect):
             for valve_index in range(len(controller.valves)):
                 controller.valves[valve_index].is_on = False if values[valve_index] == '0' else True

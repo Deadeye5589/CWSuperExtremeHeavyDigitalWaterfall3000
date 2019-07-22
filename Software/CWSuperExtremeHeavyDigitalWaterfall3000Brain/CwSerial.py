@@ -1,5 +1,6 @@
 from serial import Serial
 import platform
+import threading
 
 
 class CwSerial():
@@ -7,17 +8,22 @@ class CwSerial():
     def __init__(self):
         # self.serial_port = None
         if platform.system() == 'Linux':
-            self.serial_port = Serial('/dev/ttyUSB0', 115200)
+            port = '/dev/ttyUSB0'
         else:
-            self.serial_port = Serial('COM4', 115200)
+            port = 'COM4'
+
+        self.serial_port = Serial(port, 115200)
+#        thread = threading.Thread(target=self.read, args=(self.serial_port,))
+#        thread.start()
 
     def write(self, data):
         self.serial_port.write(data)
 
-#        bytes_read = self.serial_port.read()
-#        while bytes_read != '\r':
-#            print(bytes_read)
-#            bytes_read = self.serial_port.read()
+    def read(self, ser):
+       bytes_read = ser.read()
+       while True:
+           print(bytes_read)
+           bytes_read = ser.read()
 
     def close(self):
         self.serial_port.close()
