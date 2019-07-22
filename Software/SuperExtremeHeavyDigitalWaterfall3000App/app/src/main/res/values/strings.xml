@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Super Extreme Heavy Digital Waterfall 3000 App</string>
+    <string name="timing_tab">Timings</string>
+    <string name="on_time">On Time</string>
+    <string name="off_time">Off Time</string>
+    <string name="effect_tab">Effects</string>
+</resources>
