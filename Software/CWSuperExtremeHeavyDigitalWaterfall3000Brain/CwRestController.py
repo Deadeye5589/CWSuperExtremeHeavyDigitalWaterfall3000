@@ -18,9 +18,17 @@ class CwRestController():
         self.app.run()
 
     def action(self):
-        Settings.on_time = float(request.args.get('on_time'))
-        Settings.off_time = float(request.args.get('off_time'))
-        Settings.load_effect(request.args.get('effect_name'))
+        on_time = request.args.get('on_time')
+        off_time = request.args.get('off_time')
+        effect_name = request.args.get('effect_name')
+        off_time_pause = request.args.get('off_time_pause')
+
+        Settings.on_time = float(on_time) if on_time is not None else Settings.on_time
+        Settings.off_time = float(off_time) if off_time is not None else Settings.off_time
+        Settings.off_time_pause = float(off_time_pause) if off_time_pause is not None else Settings.off_time_pause
+
+        if effect_name is not None:
+            Settings.load_effect(effect_name)
         # Settings.height = float(request.args.get('height'))
 
     def available_effects(self):

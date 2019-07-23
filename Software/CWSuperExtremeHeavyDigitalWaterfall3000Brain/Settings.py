@@ -11,8 +11,9 @@ class Settings():
     on_time_diff = 0.01
     off_time_pause = 1.0
     effect_name = "three"
-    available_effects = []
-    effect = []
+    available_effects = ["clock"]
+
+    # effect = []
 
     @staticmethod
     def to_json():
@@ -26,17 +27,15 @@ class Settings():
 
     @staticmethod
     def load_effect(effect_name):
-        if effect_name not in Settings.available_effects:
-            return
-
         Settings.effect_name = effect_name
         effect = []
 
-        file = open("effects/" + effect_name + ".txt", "r")
-        for row in file:
-            effect.append(row.split(" "))
+        if effect_name in Settings.available_effects and effect_name != "clock":
+            effect_file = open("effects/" + effect_name + ".txt", "r")
+            for row in effect_file:
+                effect.append(row.split(" "))
 
-        Settings.effect = effect
+        return effect
 
 
 for r, d, files in os.walk("."):
