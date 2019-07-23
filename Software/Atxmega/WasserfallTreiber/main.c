@@ -32,6 +32,8 @@ RingBuffer_t Buffer;					//Construction of ringer buffer struct
 volatile uint16_t config = 1;			//No of used relays 
 volatile uint8_t store_eeprom = 0;		//Indicated to main loop that we want to store value into EEPROM
 
+volatile uint8_t rescue = 0;			//Global rescue timer counter
+
 // Enumerations -------------------------------------------------------------
 enum {start, framelength_1, framelength_2, payload, setup_1, setup_2};		//Status of state machine to be stored in state_count
 
@@ -101,7 +103,12 @@ void init_timer(void){
 	TCC0.CTRLA = TC_CLKSEL_OFF_gc;				//Timer is disabled after init
 	//TCC0.CTRLA = TC_CLKSEL_DIV64_gc;			//Prescaler to 64, also used to (re)enable timer 
 	TCC0.PER = 18000;							//Per register setting so timer frequency equals 27.77 Hz (fout = f_Cpu / (Prescaler*(PER+1))	
-	TCC0.INTCTRLA = TC_OVFINTLVL_LO_gc;			//Enable timer overflow interrupt		
+	TCC0.INTCTRLA = TC_OVFINTLVL_LO_gc;			//Enable timer overflow interrupt	
+	
+	TCC1.CTRLB = TC_WGMODE_NORMAL_gc;			//Set timer to normal mode, frequency generation via PER register
+	TCC1.CTRLA = TC_CLKSEL_DIV1024_gc;			//Prescaler to 64, also used to (re)enable timer
+	TCC1.PER = 65535;							//Per register setting so timer frequency equals 27.77 Hz (fout = f_Cpu / (Prescaler*(PER+1))
+	TCC1.INTCTRLA = TC_OVFINTLVL_LO_gc;			//Enable timer overflow interrupt	
 }
 
 
@@ -289,6 +296,15 @@ ISR(TCC0_OVF_vect)
 }
 
 
+// function name: TCC1_OVF_vect
+// Timer1 (TCC1) overflow interrupt
+// Rescue timer will trigger after 30 seconds without communication
+// Disables all valves just in case the controlling device crashed
+ISR(TCC1_OVF_vect)
+{
+	rescue++;
+}
+
 // main program starts here ---------------------------------------------------------
 int main(void)
 {
@@ -322,6 +338,7 @@ int main(void)
 		if(byte_ready){
 
 			stop_timer();											//Frames was completely received so we can stop the timeout
+			rescue = 0;
 
 			//Output content of ring buffer on DRV8860 drivers 
 			PORTD.OUTSET = PIN4_bm;									//Latch High
@@ -346,6 +363,16 @@ int main(void)
 
 		if(store_eeprom){
 			save_eeprom(config);									//Save config to EEPROM
+		}
+		
+		if(rescue > 15){
+			stop_timer();								//The timeout was trigged so we can stop the timer for now
+			DRV8860_cleanup(config);					//Switch all relays off
+			RingBuffer_Cleanup(&Buffer, USART_Data);	//Clear the ring buffer
+			char* timeout = "Rescue was triggered";		//Send message via UART that host was times out
+			send_message(timeout);
+			rescue = 0;
+			state_count = start;
 		}
 
 
