@@ -1,35 +1,46 @@
 from flask import Flask, Response, request
 
-from Settings import Settings
+from CwEffect import CwEffect
 
 
-class CwRestController():
+class CwRestController:
 
-    def __init__(self):
+    def __init__(self, queue):
+        self.queue = queue
         self.app = FlaskAppWrapper('wrap')
-        self.app.add_endpoint(endpoint='/settings', endpoint_name='settings',
-                              endpoint_action=EndpointAction(self.action))
-        self.app.add_endpoint(endpoint='/available_effects', endpoint_name='available_effects',
+        self.app.add_endpoint(endpoint='/change_effect', endpoint_name='change_effect',
+                              endpoint_action=EndpointAction(self.change_effect))
+        ''''self.app.add_endpoint(endpoint='/available_effects', endpoint_name='available_effects',
                               endpoint_action=EndpointActionWithResponse(self.available_effects))
         self.app.add_endpoint(endpoint='/current_settings', endpoint_name='current_settings',
-                              endpoint_action=EndpointActionWithResponse(self.current_settings))
+                              endpoint_action=EndpointActionWithResponse(self.current_settings))'''
 
     def run(self):
         self.app.run()
 
-    def action(self):
-        on_time = request.args.get('on_time')
-        off_time = request.args.get('off_time')
-        effect_name = request.args.get('effect_name')
-        off_time_pause = request.args.get('off_time_pause')
+    def to_float(self, value):
+        if value is not None:
+            return float(value)
+        else:
+            return None
 
-        Settings.on_time = float(on_time) if on_time is not None else Settings.on_time
-        Settings.off_time = float(off_time) if off_time is not None else Settings.off_time
-        Settings.off_time_pause = float(off_time_pause) if off_time_pause is not None else Settings.off_time_pause
+    def change_effect(self):
+        effect = CwEffect()
+        effect.on_time = self.to_float(request.args.get('on_time'))
+        effect.off_time = self.to_float(request.args.get('off_time'))
+        effect.off_time_pause = self.to_float(request.args.get('off_time_pause'))
+        effect.effect_name = request.args.get('effect_name')
+        self.queue.put(effect)
 
-        if effect_name is not None:
-            Settings.load_effect(effect_name)
-        # Settings.height = float(request.args.get('height'))
+    '''@staticmethod
+    def to_json():
+        return '{"off_time": ' + str(
+            Settings.off_time) + ',' + '"on_time": ' + str(
+            Settings.on_time) + ',' + '"effect_name": "' + Settings.effect_name + '"}'
+
+    @staticmethod
+    def available_effects_to_json():
+        return '["' + string.join(Settings.available_effects, '","') + '"]'
 
     def available_effects(self):
         return Response(
@@ -45,6 +56,8 @@ class CwRestController():
             status=200,
             mimetype="application/json",
             headers={})
+            
+            '''
 
 
 class EndpointAction(object):
@@ -72,9 +85,6 @@ class FlaskAppWrapper(object):
 
     def run(self):
         self.app.run(threaded=True)
-
-    # def add_endpoint(self, endpoint=None, endpoint_name=None, handler=None):
-    #    self.app.add_url_rule(endpoint, endpoint_name, EndpointAction(handler))
 
     def add_endpoint(self, endpoint=None, endpoint_name=None, endpoint_action=None):
         self.app.add_url_rule(endpoint, endpoint_name, endpoint_action)
