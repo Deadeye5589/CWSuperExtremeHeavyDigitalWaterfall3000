@@ -1,3 +1,5 @@
+import urllib
+
 from flask import Flask, Response, request
 
 from CwEffect import CwEffect
@@ -27,9 +29,12 @@ class CwRestController:
     def change_effect(self):
         effect = CwEffect()
         effect.on_time = self.to_float(request.args.get('on_time'))
+        effect.height = self.to_float(request.args.get('height'))
+        effect.pixel_height = self.to_float(request.args.get('pixel_height'))
         effect.off_time = self.to_float(request.args.get('off_time'))
         effect.off_time_pause = self.to_float(request.args.get('off_time_pause'))
         effect.effect_name = request.args.get('effect_name')
+        effect.sequence = urllib.unquote(request.args.get('sequence'))
         self.queue.put(effect)
 
     '''@staticmethod

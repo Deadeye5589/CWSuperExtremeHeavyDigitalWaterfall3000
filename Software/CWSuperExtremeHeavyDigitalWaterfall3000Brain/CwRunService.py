@@ -1,4 +1,5 @@
 import Queue
+import math
 import os
 import time
 from datetime import datetime
@@ -16,6 +17,10 @@ class CwRunService:
     def update_effect(self, current_effect, effect):
         if effect.on_time is not None:
             current_effect.on_time = effect.on_time
+        if effect.height is not None:
+            current_effect.height = effect.height
+        if effect.pixel_height is not None:
+            current_effect.pixel_height = effect.pixel_height
         if effect.off_time is not None:
             current_effect.off_time = effect.off_time
         if effect.sequence is not None:
@@ -28,38 +33,54 @@ class CwRunService:
 
     def run(self):
         current_effect = CwEffect()
-        print(1)
         while True:
             try:
                 effect = self.queue.get(block=False)
             except Queue.Empty:
-                print(42)
                 effect = None
             if effect is not None:
-                print(2)
                 current_effect = self.update_effect(current_effect, effect)
 
-            print(3)
             if current_effect is not None:
+                if current_effect.effect_name == "text":
+                    if current_effect.sequence is None:
+                        current_effect.sequence = "Hello world!"
+                    self.write_sequence(current_effect)
+                    time.sleep(current_effect.off_time_pause)
                 if current_effect.effect_name == "clock":
-                    print(4)
                     current_effect.sequence = datetime.now().strftime('%H:%M')
                     self.write_sequence(current_effect)
                     time.sleep(current_effect.off_time_pause)
                 else:
-                    print(5)
                     self.send_effect(self.load_file(current_effect.effect_name), current_effect)
 
+    def map_character_to_file(self, character):
+        if character == '@':
+            return "at"
+        if character == ':':
+            return "colon"
+        if character == ';':
+            return "semicolon"
+        if character == '!':
+            return "bang"
+        if character == '?':
+            return "questionmark"
+        if character == ',':
+            return "comma"
+        if character == ' ':
+            return "space"
+        return character
+
     def write_sequence(self, effect):
-        for character in list(effect.sequence):
-            character = 'colon' if character == ':' else character
-            self.send_effect(self.load_file(character), effect)
+        for character in list(effect.sequence.upper()):
+            print character
+            filename = self.map_character_to_file(character)
+            self.send_effect(self.load_file(filename), effect)
 
     def send_effect(self, rows, effect):
         for row in reversed(rows):
             # wait_for_response(queue)
             self.send_on_time(row, effect)
-            # send_on_time_ascending(controller, line_in_effect)
 
             # wait_for_response(queue)
             self.send_off_time(effect)
@@ -74,7 +95,14 @@ class CwRunService:
         for valve_index in range(len(self.cw_controller.valves)):
             self.cw_controller.valves[valve_index].is_on = False if row[valve_index] == '0' else True
         self.cw_controller.flush()
-        time.sleep(effect.on_time)
+        # time.sleep(effect.on_time)
+
+        timing_valves = 0.01
+
+        on_time = math.sqrt(2 * effect.height / 9.81) - math.sqrt(
+            2 * (effect.height - effect.pixel_height) / 9.81) + timing_valves
+        print on_time
+        time.sleep(on_time)
 
     def send_off_time(self, effect):
         for valve_index in range(len(self.cw_controller.valves)):
